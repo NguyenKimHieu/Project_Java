@@ -272,7 +272,121 @@ public class FileManager {
             //Đường phân dọc vs các nút trên.
             toolBar.addSeparator();
             
+            //Khởi tạo và hiển thị nút New.
+            newFile = new JButton("New");
+            newFile.setMnemonic('n');
+            newFile.addActionListener(new ActionListener(){
+                public void actionPerformed(ActionEvent ae) {
+                    newFile();
+                }
+            });
+            toolBar.add(newFile);
+
+            //Khởi tạo và hiển thị nút Copy
+            copyFile = new JButton("Copy");
+            copyFile.setMnemonic('c');
             
+            copyFile.addActionListener(new ActionListener(){
+                public void actionPerformed(ActionEvent ae) {
+                    int row = table.getSelectionModel().getLeadSelectionIndex();
+                    Source=((FileTableModel)table.getModel()).getFile(row);
+                    //showMessage("Copied!", "Copy Notification");
+                    Flag_Paste=true;
+                    showMessage("Copy From :"+Source.getName(), " Copy Notification");
+                }
+                
+                
+            });
+            toolBar.add(copyFile);
+            
+            //Khởi tạo và hiển thị nút Cut
+            cutFile = new JButton("Cut");
+            cutFile.setMnemonic('c');
+            
+            cutFile.addActionListener(new ActionListener(){
+                public void actionPerformed(ActionEvent ae) {                   
+                    int row = table.getSelectionModel().getLeadSelectionIndex();
+                    Source=((FileTableModel)table.getModel()).getFile(row);
+                    //showMessage("Copied!", "Copy Notification");
+                    Flag_Paste=false;
+                    showMessage("Cut From: "+Source.getName(), " Cut Notification");
+                }                                
+            });
+            toolBar.add(cutFile);
+            
+            
+           
+            
+            //Khởi tạo và hiển thị nút Paste
+            pasteFile = new JButton("Paste");
+            pasteFile.setMnemonic('p');
+            
+            pasteFile.addActionListener(new ActionListener(){
+                public void actionPerformed(ActionEvent ae) {
+                        TreePath parentPath = findTreePath(currentFile.getParentFile());
+                        System.out.println("parentPath: " + parentPath);
+                        DefaultMutableTreeNode parentNode =
+                        (DefaultMutableTreeNode)parentPath.getLastPathComponent();
+                        System.out.println("parentNode: " + parentNode);
+                       
+                        int row = table.getSelectionModel().getLeadSelectionIndex();
+                        Dest=((FileTableModel)table.getModel()).getFile(row);
+                        
+                        
+                        if(Flag_Paste)
+                        {
+                            showMessage("Copy To :"+Dest.getName(), " Copy Notification");
+                            try 
+                                {
+                                    copy(Source, Dest);
+                                } 
+                            catch (IOException ex) 
+                                {
+                                    Logger.getLogger(FileManager.class.getName()).log(Level.SEVERE, null, ex);
+                                }
+                            showMessage("Copy Complete!", " Copy Notification");
+                        }
+                        else
+                        {
+                            showMessage("Cut To: "+Dest.getName(), " Copy Notification");
+                            try 
+                                {
+                                    cut(Source, Dest);
+                                } 
+                            catch (IOException ex) 
+                                {
+                                    Logger.getLogger(FileManager.class.getName()).log(Level.SEVERE, null, ex);
+                                }
+                             showMessage("Cut Complete!", "Cut Notification");
+                        }
+                        
+                        showChildren(parentNode);
+                }
+                
+                
+            });
+            toolBar.add(pasteFile);
+
+            //Khởi tạo và hiển thị nút Rename.
+            JButton renameFile = new JButton("Rename");
+            renameFile.setMnemonic('r');
+            renameFile.addActionListener(new ActionListener(){
+                public void actionPerformed(ActionEvent ae) {
+                    renameFile();
+                }
+            });
+            toolBar.add(renameFile);
+
+            //Khởi tạo và hiển thị nút Delete.
+            deleteFile = new JButton("Delete");
+            deleteFile.setMnemonic('d');
+            deleteFile.addActionListener(new ActionListener(){
+                public void actionPerformed(ActionEvent ae) {
+                    deleteFile();
+                }
+            });
+            toolBar.add(deleteFile);
+
             toolBar.addSeparator();
 
             //Các Checkbox Read/Write/Excute.
@@ -323,6 +437,297 @@ public class FileManager {
     }
 
     
+    /*BY :CAO VAN HOA*/
+    
+    private TreePath findTreePath(File find) {
+        for (int ii=0; ii<tree.getRowCount(); ii++) {
+            TreePath treePath = tree.getPathForRow(ii);
+            Object object = treePath.getLastPathComponent();
+            DefaultMutableTreeNode node = (DefaultMutableTreeNode)object;
+            File nodeFile = (File)node.getUserObject();
+
+            if (nodeFile==find) {
+                return treePath;
+            }
+        }
+        // not found!
+        return null;
+    }
+
+    //Hàm Rename File.-Chạy trong sự kiện click button Rename
+    private void renameFile() {
+        if (currentFile==null) {
+            showErrorMessage("No file selected to rename.","Select File");
+            return;
+        }
+
+        //Hiển thị Gui thông báo gồm 1 Input
+        String renameTo = JOptionPane.showInputDialog(gui, "New Name");
+        if (renameTo!=null) {
+            try {
+                boolean directory = currentFile.isDirectory();
+                TreePath parentPath = findTreePath(currentFile.getParentFile());
+                DefaultMutableTreeNode parentNode =
+                    (DefaultMutableTreeNode)parentPath.getLastPathComponent();
+
+                boolean renamed = currentFile.renameTo(new File(
+                    currentFile.getParentFile(), renameTo));
+                if (renamed) {
+                    if (directory) {
+                        // rename the node..
+
+                        // delete the current node..
+                        TreePath currentPath = findTreePath(currentFile);
+                        System.out.println(currentPath);
+                        DefaultMutableTreeNode currentNode =
+                            (DefaultMutableTreeNode)currentPath.getLastPathComponent();
+
+                        treeModel.removeNodeFromParent(currentNode);
+
+                        // add a new node..
+                    }
+
+                    showChildren(parentNode);
+                } else {
+                    String msg = "The file '" +
+                        currentFile +
+                        "' could not be renamed.";
+                    showErrorMessage(msg,"Rename Failed");
+                }
+            } catch(Throwable t) {
+                //showThrowable(t);
+            }
+        }
+        gui.repaint();
+    }
+
+    //Hàm Delete File.-Chạy trong sự kiện click button Delete.
+    private void deleteFile() {
+        if (currentFile==null) {
+            showErrorMessage("No file selected for deletion.","Select File");
+            return;
+        }
+        
+        /*Tạo bảng Delete File*/
+        int result = JOptionPane.showConfirmDialog(
+            gui,
+            "Are you sure you want to delete this file?",
+            "Delete File",
+            JOptionPane.ERROR_MESSAGE
+            );
+        if (result==JOptionPane.OK_OPTION) {
+            try {
+                System.out.println("currentFile: " + currentFile);
+                TreePath parentPath = findTreePath(currentFile.getParentFile());
+                System.out.println("parentPath: " + parentPath);
+                DefaultMutableTreeNode parentNode =
+                    (DefaultMutableTreeNode)parentPath.getLastPathComponent();
+                System.out.println("parentNode: " + parentNode);
+
+                boolean directory = currentFile.isDirectory();
+                boolean deleted = currentFile.delete();
+                if (deleted) {
+                    if (directory) {
+                        // delete the node..
+                        TreePath currentPath = findTreePath(currentFile);
+                        System.out.println(currentPath);
+                        DefaultMutableTreeNode currentNode =
+                            (DefaultMutableTreeNode)currentPath.getLastPathComponent();
+
+                        treeModel.removeNodeFromParent(currentNode);
+                    }
+                    
+                } 
+                else 
+                {
+                    /*
+                    String msg = "The file '" +
+                        currentFile +
+                        "' could not be deleted.";
+                    showErrorMessage(msg,"Delete Failed");
+                    */
+                    Delete_Folder(currentFile);                                        
+                }
+             showChildren(parentNode);
+            } catch(Throwable t) {
+                //showThrowable(t);
+            }
+        }
+        gui.repaint();
+    }
+
+    //Hàm New File.-Chạy trong sự kiện click button NewFile
+    private void newFile() {
+        if (currentFile==null) {
+            showErrorMessage("No location selected for new file.","Select Location");
+            return;
+        }
+        /*Tạo bảng nhập Tên File/Folder  mới*/
+        if (newFilePanel==null) {
+            newFilePanel = new JPanel(new BorderLayout(3,3));
+
+            JPanel southRadio = new JPanel(new GridLayout(1,0,2,2));
+            newTypeFile = new JRadioButton("File", true);
+            JRadioButton newTypeDirectory = new JRadioButton("Directory");
+            ButtonGroup bg = new ButtonGroup();
+            bg.add(newTypeFile);
+            bg.add(newTypeDirectory);
+            southRadio.add( newTypeFile );
+            southRadio.add( newTypeDirectory );
+
+            name = new JTextField(15);
+
+            newFilePanel.add( new JLabel("Name"), BorderLayout.WEST );
+            newFilePanel.add( name );
+            newFilePanel.add( southRadio, BorderLayout.SOUTH );
+        }
+
+        int result = JOptionPane.showConfirmDialog(
+            gui,
+            newFilePanel,
+            "Create File",
+            JOptionPane.OK_CANCEL_OPTION);
+        if (result==JOptionPane.OK_OPTION) {
+            try {
+                boolean created;
+                File parentFile = currentFile;
+                if (!parentFile.isDirectory()) {
+                    parentFile = parentFile.getParentFile();
+                }
+                File file = new File( parentFile, name.getText() );
+                if (newTypeFile.isSelected()) {
+                    created = file.createNewFile();
+                } else {
+                    created = file.mkdir();
+                }
+                if (created) {
+
+                    TreePath parentPath = findTreePath(parentFile);
+                    DefaultMutableTreeNode parentNode =
+                        (DefaultMutableTreeNode)parentPath.getLastPathComponent();
+
+                    if (file.isDirectory()) {
+                        // add the new node..
+                        DefaultMutableTreeNode newNode = new DefaultMutableTreeNode(file);
+
+                        TreePath currentPath = findTreePath(currentFile);
+                        DefaultMutableTreeNode currentNode =
+                            (DefaultMutableTreeNode)currentPath.getLastPathComponent();
+
+                        treeModel.insertNodeInto(newNode, parentNode, parentNode.getChildCount());
+                    }
+
+                    showChildren(parentNode);
+                } else {
+                    String msg = "The file '" +
+                        file +
+                        "' could not be created.";
+                    showErrorMessage(msg, "Create Failed");
+                }
+            } catch(Throwable t) {
+                showThrowable(t);
+            }
+        }
+        gui.repaint();
+    }
+    
+    //Hàm Copy-chạy trong sự kiện click button copy
+    private void copy(File source, File dest) throws FileNotFoundException, IOException
+    {
+      if(source.isFile())
+      {
+          String name=source.getName();
+          File Flag=new File(dest,name);
+          copy_File(source, Flag);
+      }
+      else
+      {
+          String name=source.getName();
+          File Flag=new File(dest,name);
+          copy_Folder(source, Flag);
+      }
+      
+    }
+    
+    //Hàm Copy File
+    private static void copy_File(File source, File dest) throws IOException 
+    {
+        InputStream is = null;
+        OutputStream os = null;
+        try {
+            is = new FileInputStream(source);
+            os = new FileOutputStream(dest);
+            byte[] buffer = new byte[1024];
+            int length;
+            while ((length = is.read(buffer)) > 0) {
+                os.write(buffer, 0, length);
+            }
+        } finally {
+            is.close();
+            os.close();
+        }
+    }
+    
+    //Hàm Copy Folder
+    private void copy_Folder(File src,File dest) throws IOException
+    {
+        if(src.isDirectory())
+        {
+            if(!dest.exists())
+                dest.mkdir();
+            
+            String files[]=src.list();
+        
+            for(String file:files)
+            {
+                File srcFile=new File(src,file);
+                File destFile= new File(dest,file);
+
+                copy_Folder(srcFile,destFile);
+            }
+        }
+        else
+        {
+            Files.copy(src.toPath(), dest.toPath(), StandardCopyOption.REPLACE_EXISTING);
+        }
+        
+        
+    }
+    
+    //Hàm Delete Folder
+    private void Delete_Folder(File src)
+    {
+        File [] contents=src.listFiles();
+        if(contents!=null)
+        {
+            for(File f:contents)
+                Delete_Folder(f);
+        }
+        src.delete();
+    }
+    
+    //Hàm Cut-chạy trong sự kiện click button Cut
+    private void cut(File source, File dest) throws IOException
+    {
+        if(source.isFile())
+      {
+          String name=source.getName();
+          File Flag=new File(dest,name);
+          copy_File(source, Flag);
+          source.delete();
+      }
+      else
+      {
+          String name=source.getName();
+          File Flag=new File(dest,name);
+          copy_Folder(source, Flag);
+          Delete_Folder(source);
+          
+      }
+    }
+    
+     /*END BY CAO VAN HOA*/
+
     //Thông báo Lỗi
     private void showErrorMessage(String errorMessage, String errorTitle) {
         JOptionPane.showMessageDialog(
