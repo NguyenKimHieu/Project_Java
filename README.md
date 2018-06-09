@@ -4,7 +4,7 @@
 
 * design UI by Java Swing.
 
-## Function:## 
+## Function:
 
 * Load Files System and Directory.
 
