@@ -1,4 +1,4 @@
-# Project_Java
+## Project_Java
 *written by Maven.  
 *design UI by Java Swing.
 ##Function:
