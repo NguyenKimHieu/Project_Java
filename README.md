@@ -1,17 +1,17 @@
 ## Project_Java
 
-*written by Maven.
+* written by Maven.
 
-*design UI by Java Swing.
+* design UI by Java Swing.
 
-##Function:
+## Function:## 
 
-*Load Files System and Directory.
+* Load Files System and Directory.
 
-*Open File .exe
+* Open File .exe
 
-*New File/Directory.
+* New File/Directory.
 
-*Rename File/Directory.
+* Rename File/Directory.
 
-*Copy/Cut/Delete File/Directory.
+* Copy/Cut/Delete File/Directory.
